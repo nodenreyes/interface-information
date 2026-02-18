@@ -1,0 +1,30 @@
+import csv
+import pynetbox #library to interact with netbox
+
+NETBOX_URL = "https://dcim.optimised.noden.com.au"   
+NETBOX_TOKEN = "b9ff3487acc96817311bc53652fbe61bf80b8f17"           
+
+nb = pynetbox.api(NETBOX_URL, token=NETBOX_TOKEN)
+
+# CSV prevously generated (list with all interfaces descrptions)
+CSV_FILE = "interfaces.csv"
+
+
+with open(CSV_FILE, newline='') as csvfile:
+    reader = csv.DictReader(csvfile)
+    
+    for row in reader:
+        # clean spaces and hop lines
+        device_name = row['device'].strip()
+        interface_name = row['Interface'].strip()
+        description = row['Description'].strip()
+
+        # search the interface in netbox
+        interface = nb.dcim.interfaces.get(device=device_name, name=interface_name)
+
+        if interface:
+            # update description
+            interface.update({"description": description})
+            print(f"{device_name} {interface_name} -> {description}")
+        else:
+            print(f"is not find {interface_name} in {device_name}")
