@@ -1,0 +1,42 @@
+from jnpr.junos import Device # allows connect to the router via NETCONF
+from lxml import etree # help to handle XML format ()
+import pandas as pd #  Library to work with  tables and dataframes. good for cleaning, organizing adn exporting data in CSV
+ #connect to the device
+host = '10.254.0.2'
+user = 'breakglass'
+passwd = 'bakery-par-pamphlet'
+
+dev = Device(host=host, user=user, passwd=passwd)
+
+try:
+    dev.open()
+
+    sys_info = dev.rpc.get_system_information()
+    device_name = sys_info.findtext('host-name')
+
+    # get interfaces information
+    interfaces = dev.rpc.get_interface_information()
+
+    # List to storage the information
+    interfaces_info = []
+
+    # check every physical interface
+    for iface in interfaces.xpath('//physical-interface'): #Searches for all <physical-interface> tags within the XML. Each iface represents a physical router interface, such as ge-0/0/0 or xe-0/2/0.
+        name = iface.findtext('name') # search the text inside the XML tag
+        mtu = iface.findtext('mtu')
+        description = iface.findtext('description')
+
+        interfaces_info.append({
+            'device': device_name, #get the device host name
+            'Interface': name, # get the interface name
+            'Description': description if description else 'N/A', # get the description for the interface
+            'MTU': mtu,
+        })
+
+    # create DataFrames y and show in table
+    df = pd.DataFrame(interfaces_info)
+    print(df)
+    df.to_csv('interfaces.csv', index=False) # save the information in another in the same folder
+
+finally:
+    dev.close() 
